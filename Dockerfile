@@ -9,17 +9,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -tags "with_utls with
 
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates gosu \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -r -u 10001 easy \
     && mkdir -p /etc/easy-proxies \
-    && touch /etc/easy-proxies/nodes.txt \
     && chown -R easy:easy /etc/easy-proxies
 WORKDIR /app
 COPY --from=builder /src/easy-proxies /usr/local/bin/easy-proxies
 COPY --chown=easy:easy config.example.yaml /etc/easy-proxies/config.yaml
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 # Pool/Hybrid mode: 2323, Management: 9091, Multi-port/Hybrid mode: 24000-24200
 EXPOSE 2323 9091 24000-24200
-USER easy
-ENTRYPOINT ["/usr/local/bin/easy-proxies"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["--config", "/etc/easy-proxies/config.yaml"]
